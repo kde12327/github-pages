@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko-kr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RegionalIndicator</title>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+    }
+    #text_input {
+      height: calc(50% - 24px);
+      width: calc(100% - 22px);
+      margin: 8px;
+      padding: 2px 1px 2px 1px;
+      vertical-align: text-top;
+    }
+    #result_div {
+      height: calc(50% - 39px);
+      width: calc(100% - 16px);
+      margin: 8px;
+    }
+  </style>
+</head>
+<body>
+  <input type="text" name="input" id="text_input">
+  <div id="result_div"></div>
+  <button id="copy">Copy</button>
+  <script>
+  document.getElementById('text_input').addEventListener('change', (event) => {
+    const resultDiv = document.getElementById('result_div')
+    const str = event.target.value
+    const strArr = str.split('')
+    let result = ''
+    strArr.forEach(e => {
+      let tmp = e
+      if(tmp.search('[a-zA-Z]') === 0){
+        console.log('mm')
+        tmp = `:regional_indicator_${tmp.toLowerCase()}: `
+      }
+      result += tmp
+    });
+    console.log(result)
+    resultDiv.textContent = `${result}`
+  });
+  document.getElementById('copy').addEventListener("click", function(){
+    var tempElem = document.createElement('textarea');
+    tempElem.value = document.getElementById('result_div').textContent;  
+    document.body.appendChild(tempElem);
+
+    tempElem.select();
+    document.execCommand("copy");
+    document.body.removeChild(tempElem);
+  });
+  </script>
+</body>
+</html>
