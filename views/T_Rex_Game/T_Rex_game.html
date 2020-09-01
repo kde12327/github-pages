@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko-kr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T-Rex-Game</title>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+    }
+    #main_canvas {
+      position: absolute;
+      top: calc(30% - 75px);
+      left: calc(50% - 300px);
+    }
+    #T_Rex_img {
+      /* display: none; */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="main_canvas"></canvas>
+  <div id="images_div">
+    <img id="T_Rex_img" src="../../public/image/T_Rex_Game/T_Rex_3kb.png">
+  </div>
+  <script>
+    function getRandomInt(min, max) {
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(Math.random() * (max - min)) + min; //최댓값은 제외, 최솟값은 포함
+    }
+    var T_Rex_Game = {
+      gameInterval: null,
+      onLoad: function() {
+        this.canvas = document.querySelector('#main_canvas'),
+        this.context = this.canvas.getContext('2d'),
+        this.image = document.querySelector('#T_Rex_img'),
+        this.canvas.setAttribute('width',600);
+        this.canvas.setAttribute('height',150);
+        this.frameNo = 0
+        document.addEventListener('keydown', this.onKeyDown);
+        document.addEventListener('keyup', this.onKeyUp);
+        this.start()
+      },
+      onKeyDown(e) {
+        // console.log(e)
+        const _this = T_Rex_Game
+        // console.log(_this)
+        const status = _this.status
+        switch (e.code) {
+          case 'Space':
+            if(status.leftJumpCount > 0) {
+              status.ySpeed = 10
+              status.leftJumpCount -= 1
+            }
+            break;
+          case 'ArrowDown':
+            status.slide = true
+            break;
+        
+          default:
+            break;
+        }
+      },
+      onKeyUp(e) {
+        const _this = T_Rex_Game
+        const status = _this.status
+        switch (e.code) {
+          case 'Space':
+            break;
+          case 'ArrowDown':
+            status.slide = false
+            break;
+        
+          default:
+            break;
+        }
+      },
+      start: function() {
+        // this.context.drawImage(this.image, 848, 2, 44, 47, 0, 102, 44, 47)
+        // this.context.drawImage(this.image, 2, 54, 600, 12, 0, 142, 600, 12)
+        this.status = {
+          yAccel: 0,
+          gravity: 0.8,
+          ySpeed: 0,
+          yDist: 0,
+          onGround: true,
+          slide: false,
+          xSpeed: 2,
+          xSpeedAccel: 0.01,
+          xSpeedMax: 15,
+          xDist: 0,
+          leftJumpCount: 2,
+          defaultJumpCount: 2,
+          checkPoint: 0,
+          passedHuddle: 0,
+          hitted: false,
+          showHitBox: true,
+          immortal: false,
+        }
+        this.status.leftJumpCount = this.status.defaultJumpCount
+        this.gameInterval = setInterval(this.update, 20); // 1/50 seconde
+      },
+      update: function() {
+        let _this = T_Rex_Game
+        let fr = _this.frameNo
+        const image = _this.image
+        const context = _this.context
+        const status = _this.status
+        const objects = _this.objects
+
+        // Get yDist
+        status.yDist += status.ySpeed
+
+        // Get xSpeed
+        if( status.xSpeed < status.xSpeedMax) {
+          status.xSpeed += status.xSpeedAccel
+        }
+        status.xDist += status.xSpeed
+
+        // Check onGround
+        if(status.yDist <= 0) {
+          status.yDist = 0
+          status.onGround = true
+          status.leftJumpCount = status.defaultJumpCount
+        } else {
+          status.onGround = false
+        }
+
+        // Check gravity
+        if( !status.onGround ){
+          status.ySpeed -= status.gravity
+        } else {
+          status.ySpeed = 0
+        }
+
+        // Add huddles
+        if(Math.floor(status.xDist)/300 >= status.checkPoint) {
+          _this.addHuddle(getRandomInt(1, 4))
+          status.checkPoint += 1
+        }
+
+        // Objects update
+        Object.values(objects).forEach((e) => {
+          if(e.update) {
+            e.update(_this)
+          }
+        })
+
+        // Check hitBox
+        const hitBox = objects.agent.status.hitBox
+        objects.huddle.huddleArr.some((e) => {
+          const huddleHitBox = e.status.hitBox
+          if(
+            (
+              (hitBox.x >= huddleHitBox.x && hitBox.x <= huddleHitBox.x + huddleHitBox.w) ||
+              (hitBox.x + hitBox.w >= huddleHitBox.x && hitBox.x + hitBox.w <= huddleHitBox.x + huddleHitBox.w) ||
+              (hitBox.x <= huddleHitBox.x && hitBox.x + hitBox.w >= huddleHitBox.x + huddleHitBox.w)
+            ) &&
+            (
+              (hitBox.y >= huddleHitBox.y && hitBox.y <= huddleHitBox.y + huddleHitBox.h) ||
+              (hitBox.y + hitBox.h >= huddleHitBox.y && hitBox.y + hitBox.h <= huddleHitBox.y + huddleHitBox.h) ||
+              (hitBox.y <= huddleHitBox.y && hitBox.y + hitBox.h >= huddleHitBox.y + huddleHitBox.h)
+            ) &&
+            !status.immortal
+          ) {
+            status.hitted = true
+            return 0
+          }
+        })
+
+        // Distance
+        console.log(Math.floor(status.xDist))
+
+        // Clear and Draw
+        _this.clear()
+        _this.draw(_this, context, image, fr)
+        _this.frameNo += 1
+
+        if(status.hitted) {
+          // alert('hit!')
+          // clearInterval(_this.gameInterval)
+          status.xSpeed = 2
+          status.hitted = false
+          status.immortal = true
+          console.log('hitted!')
+          setTimeout(() => {
+            const game = T_Rex_Game
+            game.status.immortal = false
+          }, 1000)
+        }
+        
+      },
+      clear: function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      },
+      draw: function(game, context, image, fr) {
+        Object.values(this.objects).forEach((e) => {
+          e.draw(game, context, image, fr)
+        })
+      },
+      objects: {
+        ground: {
+          sx: 2,
+          sy: 54,
+          sw: 1200,
+          sh: 12,
+          dw: 600,
+          dh: 150,
+          draw: function(game, context, image, fr) {
+            const status = game.status
+            const xGap = status.xDist % this.sw
+            context.drawImage(image, this.sx + xGap, this.sy, this.dw, this.sh, 0, this.dh - this.sh, this.dw, this.sh)
+            if(xGap > this.dw) {
+              context.drawImage(image, this.sx , this.sy, xGap - this.dw, this.sh, this.sw - xGap, this.dh - this.sh, xGap - this.dw, this.sh)
+            }
+          }
+        },
+        agent: {
+          status: {
+            xPositoin: 0,
+            yPosition: 0,
+            slide: false,
+            hitBox: {
+              x: 0,
+              y: 0,
+              w: 0,
+              h: 0,
+            },
+          },
+          imageOffset: {
+            left: {
+              sx: 936,
+              sy: 2,
+              sw: 44,
+              sh: 47,
+              dx: 0,
+              dy: 102,
+              dw: 44,
+              dh: 47,
+            },
+            right: {
+              sx: 980,
+              sy: 2,
+              sw: 44,
+              sh: 47,
+              dx: 0,
+              dy: 102,
+              dw: 44,
+              dh: 47,
+            },
+            jump: {
+              sx: 848,
+              sy: 2,
+              sw: 44,
+              sh: 47,
+              dx: 0,
+              dy: 102,
+              dw: 44,
+              dh: 47,
+            },
+            slideLeft: {
+              sx: 1114,
+              sy: 21,
+              sw: 55,
+              sh: 26,
+              dx: 0,
+              dy: 123,
+              dw: 55,
+              dh: 26,
+            },
+            slideRight: {
+              sx: 1173,
+              sy: 21,
+              sw: 55,
+              sh: 26,
+              dx: 0,
+              dy: 123,
+              dw: 55,
+              dh: 26,
+            },
+          },
+          hitBoxOffset: {
+            normal: {
+              x: 12,
+              y: 2,
+              w: 20, //30
+              h: 37, //43
+            },
+            slide: {
+              x: 12,
+              y: 22,
+              w: 20,
+              h: 19,
+            }
+          },
+          draw: function(game, context, image, fr) {
+            const status = game.status
+            if(!status.onGround) {
+              context.drawImage(image, this.imageOffset.jump.sx, this.imageOffset.jump.sy, this.imageOffset.jump.sw, this.imageOffset.jump.sh, this.imageOffset.jump.dx, this.imageOffset.jump.dy - status.yDist, this.imageOffset.jump.dw, this.imageOffset.jump.dh)
+            }else if(status.slide) {
+              if(Math.floor(fr/4)%2 == 0) {
+                context.drawImage(image, this.imageOffset.slideLeft.sx, this.imageOffset.slideLeft.sy, this.imageOffset.slideLeft.sw, this.imageOffset.slideLeft.sh, this.imageOffset.slideLeft.dx, this.imageOffset.slideLeft.dy, this.imageOffset.slideLeft.dw, this.imageOffset.slideLeft.dh)
+              } else {
+                context.drawImage(image, this.imageOffset.slideRight.sx, this.imageOffset.slideRight.sy, this.imageOffset.slideRight.sw, this.imageOffset.slideRight.sh, this.imageOffset.slideRight.dx, this.imageOffset.slideRight.dy, this.imageOffset.slideRight.dw, this.imageOffset.slideRight.dh)
+              }
+            }else {
+              if(Math.floor(fr/4)%2 == 0) {
+                context.drawImage(image, this.imageOffset.left.sx, this.imageOffset.left.sy, this.imageOffset.left.sw, this.imageOffset.left.sh, this.imageOffset.left.dx, this.imageOffset.left.dy, this.imageOffset.left.dw, this.imageOffset.left.dh)
+              } else {
+                context.drawImage(image, this.imageOffset.right.sx, this.imageOffset.right.sy, this.imageOffset.right.sw, this.imageOffset.right.sh, this.imageOffset.right.dx, this.imageOffset.right.dy, this.imageOffset.right.dw, this.imageOffset.right.dh)
+              }
+            }
+            if (status.showHitBox) {
+              context.strokeRect(this.status.hitBox.x, this.status.hitBox.y, this.status.hitBox.w, this.status.hitBox.h)
+            }
+          },
+          update: function(game) {
+            this.status.xPosition = 0
+            this.status.yPosition = 102 - game.status.yDist
+            this.status.slide = game.status.slide
+            let hitBoxOffset = null
+            if (game.status.slide) {
+              if (game.status.onGround) {
+                hitBoxOffset = this.hitBoxOffset.slide
+              } else {
+                hitBoxOffset = this.hitBoxOffset.normal
+              }
+            } else {
+              hitBoxOffset = this.hitBoxOffset.normal
+            }
+            this.status.hitBox = {x: hitBoxOffset.x + this.status.xPosition, y: hitBoxOffset.y + this.status.yPosition, w: hitBoxOffset.w, h: hitBoxOffset.h}
+          },
+        },
+        huddle: {
+          huddleArr: [],
+          addHuddle: function(type) {
+            let obj = null
+            switch (type) {
+              case 1: // Pterosaur
+                obj = {
+                  type: type, 
+                  imageOffset: {
+                    first: {
+                      sx: 134, 
+                      sy: 8, 
+                      sw: 46, 
+                      sh: 34
+                    },
+                    second: {
+                      sx: 180, 
+                      sy: 2, 
+                      sw: 46, 
+                      sh: 34
+                    },
+                  },
+                  status: {
+                    xSpeed: getRandomInt(0, 2),
+                    ySpeed: 0,
+                    xPosition:600, 
+                    yPosition:getRandomInt(20, 110), 
+                    hitBox:{
+                      x:4, 
+                      y:2, 
+                      w:34, 
+                      h:20
+                    },
+                  }, 
+                  hitBoxOffset:{
+                    x:4, 
+                    y:2, 
+                    w:34, 
+                    h:20
+                  }
+                }
+                break;
+              case 2: // Cactus small
+                if (getRandomInt(0,2) === 0) {
+                  obj = {
+                    type: type, 
+                    imageOffset: {
+                      first: {
+                        sx: 228, 
+                        sy: 2, 
+                        sw: 18, 
+                        sh: 35
+                      }
+                    },
+                    status: {
+                      xSpeed: 0,
+                      ySpeed: 0,
+                      xPosition:600, 
+                      yPosition:110, 
+                      hitBox:{
+                        x:5, 
+                        y:2, 
+                        w:7, 
+                        h:35
+                      },
+                    }, 
+                    hitBoxOffset:{
+                      x:5, 
+                      y:2, 
+                      w:7, 
+                      h:35
+                    }
+                  }
+                }else{
+                  obj = {
+                    type: type, 
+                    imageOffset: {
+                      first: {
+                        sx: 296, 
+                        sy: 2, 
+                        sw: 17, 
+                        sh: 35
+                      }
+                    },
+                    status: {
+                      xPosition:600, 
+                      yPosition:110, 
+                      hitBox:{
+                        x:5, 
+                        y:2, 
+                        w:7, 
+                        h:35
+                      },
+                    }, 
+                    hitBoxOffset:{
+                      x:5, 
+                      y:2, 
+                      w:7, 
+                      h:35
+                    }
+                  }
+                }
+                break;
+              case 3: // Cactus large
+                if (getRandomInt(0,2) === 0) {
+                  obj = {
+                    type: type, 
+                    imageOffset: {
+                      first: {
+                        sx: 332, 
+                        sy: 2, 
+                        sw: 25, 
+                        sh: 51
+                      }
+                    },
+                    status: {
+                      xSpeed: 0,
+                      ySpeed: 0,
+                      xPosition:600, 
+                      yPosition:98, 
+                      hitBox:{
+                        x:8, 
+                        y:2, 
+                        w:9, 
+                        h:51
+                      },
+                    }, 
+                    hitBoxOffset:{
+                      x:8, 
+                      y:2, 
+                      w:9, 
+                      h:51
+                    }
+                  }
+                }else{
+                  obj = {
+                    type: type, 
+                    imageOffset: {
+                      first: {
+                        sx: 382, 
+                        sy: 2, 
+                        sw: 25, 
+                        sh: 51
+                      }
+                    },
+                    status: {
+                      xPosition:600, 
+                      yPosition:98, 
+                      hitBox:{
+                        x:8, 
+                        y:2, 
+                        w:9, 
+                        h:51
+                      },
+                    }, 
+                    hitBoxOffset:{
+                      x:8, 
+                      y:2, 
+                      w:9, 
+                      h:51
+                    }
+                  }
+                }
+                break;
+              default:
+                break;
+            }
+            this.huddleArr.push(obj)
+          },
+          update: function(game) {
+            const xSpeed = game.status.xSpeed
+            const huddleArr = this.huddleArr
+            const removeHuddleIdx = [] // remove huddles
+            huddleArr.forEach((e) => {
+              e.status.xPosition -= (xSpeed + e.status.xSpeed)
+              e.status.yPosition -= e.status.ySpeed
+              let maxWidth = 0
+              Object.values(e.imageOffset).forEach((c) => {
+                if(c.sw > maxWidth) {
+                  maxWidth = c.sw
+                }
+              })
+
+              
+              if (0 > e.status.xPosition + maxWidth) {
+                // Remove huddles
+                removeHuddleIdx.push(huddleArr.indexOf(e) )
+              } else {
+                // Update hitBox
+                const hitBoxOffset = e.hitBoxOffset
+                e.status.hitBox = {x: hitBoxOffset.x + e.status.xPosition, y: hitBoxOffset.y + e.status.yPosition, w: hitBoxOffset.w, h: hitBoxOffset.h}
+              }
+            })
+            for(let i = removeHuddleIdx.length - 1; i >= 0; i--) {
+              if (removeHuddleIdx[i] > -1) huddleArr.splice(removeHuddleIdx[i], 1)
+            }
+            
+          },
+          draw: function(game, context, image, fr) {
+            const status = game.status
+            const huddle = game.objects.huddle
+            huddle.huddleArr.forEach((e)=>{
+              const obj = e
+              switch (obj.type) {
+                case 1: // Pterosaur
+                  if(Math.floor(fr/10)%2 == 0) {
+                    context.drawImage(image, obj.imageOffset.first.sx, obj.imageOffset.first.sy, obj.imageOffset.first.sw, obj.imageOffset.first.sh, obj.status.xPosition, obj.status.yPosition, obj.imageOffset.first.sw, obj.imageOffset.first.sh)
+                  } else {
+                    context.drawImage(image, obj.imageOffset.second.sx, obj.imageOffset.second.sy, obj.imageOffset.second.sw, obj.imageOffset.second.sh, obj.status.xPosition, obj.status.yPosition - 6, obj.imageOffset.second.sw, obj.imageOffset.second.sh)
+                  }
+                  break;
+                case 2: // Cactus small
+                case 3: // Cactus large
+                  context.drawImage(image, obj.imageOffset.first.sx, obj.imageOffset.first.sy, obj.imageOffset.first.sw, obj.imageOffset.first.sh, obj.status.xPosition, obj.status.yPosition, obj.imageOffset.first.sw, obj.imageOffset.first.sh)
+
+                  break;
+              
+                default:
+                  break;
+              }
+              if (status.showHitBox) {
+                context.strokeRect(e.status.hitBox.x, e.status.hitBox.y, e.status.hitBox.w, e.status.hitBox.h)
+              }
+            })
+          }
+        }
+      },
+      addHuddle(type) {
+        this.objects.huddle.addHuddle(type)
+      },
+    }
+    window.onload = function() {
+      T_Rex_Game.onLoad()
+    }
+  </script>
+</body>
+</html>
+<!-- 41,4 83,48 // 모르겠음--> 
+<!-- 2,54 1201,65 // 바닥--> 
+<!-- 848,2 891,48  // 두발--> 
+<!-- 936,2  979,48 오른발-->
+<!-- 980,2  1023,48 왼발-->
+<!-- 848,2  891,48 점프-->
+<!-- 1114,21  1168,46 슬라이드 왼발-->
+<!-- 1173,21  1227,46 슬라이드 오른발-->
+<!-- 공룡 피격 12,4  30,43 -->
+<!-- 슬라이드 피격 11,22  44,25 -->
+<!-- 134,8  179,41 익룡 1-->
+<!-- 180,2  225,31 익룡 2-->
+<!-- 익룡 피격 xy 0,10  wh 46,20  -->
+<!-- 228,2  245,36 선인장_s 1-->
+<!-- 296,2  312,36 선인장_s 2-->
+<!-- 선인장_s 피격 5,2 7,35 -->
+<!-- 332,2  356,52 선인장_l 1-->
+<!-- 382,2  406,52 선인장_l 2-->
+<!-- 선인장_l 피격 8,2 9,51 -->
+<!-- 407,2  481,52 선인장_xl 1-->
+<!-- 선인장_xl 피격 8,2 60,50 -->
