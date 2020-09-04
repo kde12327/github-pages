@@ -51,9 +51,14 @@
         const status = _this.status
         switch (e.code) {
           case 'Space':
-            if(status.leftJumpCount > 0) {
-              status.ySpeed = 10
-              status.leftJumpCount -= 1
+            if(status.gameOver) {
+              status.gameOver = false
+              _this.gameStart()
+            }else {
+              if(status.leftJumpCount > 0) {
+                status.ySpeed = 10
+                status.leftJumpCount -= 1
+              }
             }
             break;
           case 'ArrowDown':
@@ -81,6 +86,19 @@
       start: function() {
         // this.context.drawImage(this.image, 848, 2, 44, 47, 0, 102, 44, 47)
         // this.context.drawImage(this.image, 2, 54, 600, 12, 0, 142, 600, 12)
+        
+        this.gameInterval = setInterval(this.update, 20); // 1/50 seconde
+        this.gameStart()
+      },
+      gameStart(){
+        this.objects.huddle.huddleArr = []
+
+        
+
+        this.flag = {
+          showHitBox: true,
+        }
+
         this.status = {
           yAccel: 0,
           gravity: 0.8,
@@ -97,11 +115,20 @@
           checkPoint: 0,
           passedHuddle: 0,
           hitted: false,
-          showHitBox: true,
           immortal: false,
+          lifeMaximum: 3,
+          life: 3,
+          gameOver: false,
         }
         this.status.leftJumpCount = this.status.defaultJumpCount
-        this.gameInterval = setInterval(this.update, 20); // 1/50 seconde
+        this.status.life = this.status.lifeMaximum
+
+
+        // Init objects status
+        Object.values(this.objects).forEach(e => {
+          // console.log(e)
+          e.init(this)
+        })
       },
       update: function() {
         let _this = T_Rex_Game
@@ -111,86 +138,104 @@
         const status = _this.status
         const objects = _this.objects
 
-        // Get yDist
-        status.yDist += status.ySpeed
+        if(!status.gameOver){
 
-        // Get xSpeed
-        if( status.xSpeed < status.xSpeedMax) {
-          status.xSpeed += status.xSpeedAccel
-        }
-        status.xDist += status.xSpeed
+          // Get yDist
+          status.yDist += status.ySpeed
 
-        // Check onGround
-        if(status.yDist <= 0) {
-          status.yDist = 0
-          status.onGround = true
-          status.leftJumpCount = status.defaultJumpCount
-        } else {
-          status.onGround = false
-        }
-
-        // Check gravity
-        if( !status.onGround ){
-          status.ySpeed -= status.gravity
-        } else {
-          status.ySpeed = 0
-        }
-
-        // Add huddles
-        if(Math.floor(status.xDist)/300 >= status.checkPoint) {
-          _this.addHuddle(getRandomInt(1, 4))
-          status.checkPoint += 1
-        }
-
-        // Objects update
-        Object.values(objects).forEach((e) => {
-          if(e.update) {
-            e.update(_this)
+          // Get xSpeed
+          if( status.xSpeed < status.xSpeedMax) {
+            status.xSpeed += status.xSpeedAccel
           }
-        })
+          status.xDist += status.xSpeed
 
-        // Check hitBox
-        const hitBox = objects.agent.status.hitBox
-        objects.huddle.huddleArr.some((e) => {
-          const huddleHitBox = e.status.hitBox
-          if(
-            (
-              (hitBox.x >= huddleHitBox.x && hitBox.x <= huddleHitBox.x + huddleHitBox.w) ||
-              (hitBox.x + hitBox.w >= huddleHitBox.x && hitBox.x + hitBox.w <= huddleHitBox.x + huddleHitBox.w) ||
-              (hitBox.x <= huddleHitBox.x && hitBox.x + hitBox.w >= huddleHitBox.x + huddleHitBox.w)
-            ) &&
-            (
-              (hitBox.y >= huddleHitBox.y && hitBox.y <= huddleHitBox.y + huddleHitBox.h) ||
-              (hitBox.y + hitBox.h >= huddleHitBox.y && hitBox.y + hitBox.h <= huddleHitBox.y + huddleHitBox.h) ||
-              (hitBox.y <= huddleHitBox.y && hitBox.y + hitBox.h >= huddleHitBox.y + huddleHitBox.h)
-            ) &&
-            !status.immortal
-          ) {
-            status.hitted = true
-            return 0
+          // Check onGround
+          if(status.yDist <= 0) {
+            status.yDist = 0
+            status.onGround = true
+            status.leftJumpCount = status.defaultJumpCount
+          } else {
+            status.onGround = false
           }
-        })
 
-        // Distance
-        console.log(Math.floor(status.xDist))
+          // Check gravity
+          if( !status.onGround ){
+            status.ySpeed -= status.gravity
+          } else {
+            status.ySpeed = 0
+          }
+
+          // Add huddles
+          if(Math.floor(status.xDist)/300 >= status.checkPoint) {
+            _this.addHuddle(getRandomInt(1, 4))
+            status.checkPoint += 1
+          }
+
+          // Objects update
+          Object.values(objects).forEach((e) => {
+            if(e.update) {
+              e.update(_this)
+            }
+          })
+
+          // Check hitBox
+          const hitBox = objects.agent.status.hitBox
+          objects.huddle.huddleArr.some((e) => {
+            const huddleHitBox = e.status.hitBox
+            if(
+              (
+                (hitBox.x >= huddleHitBox.x && hitBox.x <= huddleHitBox.x + huddleHitBox.w) ||
+                (hitBox.x + hitBox.w >= huddleHitBox.x && hitBox.x + hitBox.w <= huddleHitBox.x + huddleHitBox.w) ||
+                (hitBox.x <= huddleHitBox.x && hitBox.x + hitBox.w >= huddleHitBox.x + huddleHitBox.w)
+              ) &&
+              (
+                (hitBox.y >= huddleHitBox.y && hitBox.y <= huddleHitBox.y + huddleHitBox.h) ||
+                (hitBox.y + hitBox.h >= huddleHitBox.y && hitBox.y + hitBox.h <= huddleHitBox.y + huddleHitBox.h) ||
+                (hitBox.y <= huddleHitBox.y && hitBox.y + hitBox.h >= huddleHitBox.y + huddleHitBox.h)
+              ) &&
+              !status.immortal
+            ) {
+              status.hitted = true
+              return 0
+            }
+          })
+
+          // Handle hit event
+          if(status.hitted) {
+            if(status.life > 0){
+              status.life--
+              // alert('hit!')
+              // clearInterval(_this.gameInterval)
+              status.xSpeed =  (status.xSpeed/2 > 2)? status.xSpeed/2 : 2
+              status.hitted = false
+              status.immortal = true
+              setTimeout(() => {
+                const game = T_Rex_Game
+                game.status.immortal = false
+              }, 1000)
+              if(status.life === 0) {
+                status.gameOver = true
+              }
+            } 
+            
+          }
+        } else {
+          // Objects update
+          Object.values(objects).forEach((e) => {
+            if(e.update) {
+              e.update(_this)
+            }
+          })
+        }
+
+        
 
         // Clear and Draw
         _this.clear()
         _this.draw(_this, context, image, fr)
         _this.frameNo += 1
 
-        if(status.hitted) {
-          // alert('hit!')
-          // clearInterval(_this.gameInterval)
-          status.xSpeed = 2
-          status.hitted = false
-          status.immortal = true
-          console.log('hitted!')
-          setTimeout(() => {
-            const game = T_Rex_Game
-            game.status.immortal = false
-          }, 1000)
-        }
+        
         
       },
       clear: function() {
@@ -209,6 +254,9 @@
           sh: 12,
           dw: 600,
           dh: 150,
+          init: function(game){
+
+          },
           draw: function(game, context, image, fr) {
             const status = game.status
             const xGap = status.xDist % this.sw
@@ -217,6 +265,51 @@
               context.drawImage(image, this.sx , this.sy, xGap - this.dw, this.sh, this.sw - xGap, this.dh - this.sh, xGap - this.dw, this.sh)
             }
           }
+        },
+        background: {
+          cloudArr: [],
+          status: {
+            cloudCycle: 450,
+            imageOffset: {
+              cloud: {
+                sx: 86,
+                sy: 2,
+                sw: 46,
+                sh: 13,
+              },
+            }
+          },
+          init: function(game){
+            this.status.cloudCycle = getRandomInt(300, 800)
+            this.cloudArr = []
+          },
+          draw: function(game, context, image, fr) {
+            
+            this.cloudArr.forEach(e => {
+              context.drawImage(image, this.status.imageOffset.cloud.sx, this.status.imageOffset.cloud.sy, this.status.imageOffset.cloud.sw, this.status.imageOffset.cloud.sh, e.xPosition, e.yPosition, this.status.imageOffset.cloud.sw, this.status.imageOffset.cloud.sh)
+            })
+          },
+          update: function(game) {
+            if (!game.status.gameOver) {
+              this.status.cloudCycle -= 1
+              const removeCloudIdxArr = []
+              for(let i = 0; i < this.cloudArr.length; i++){
+                this.cloudArr[i].xPosition -= this.cloudArr[i].xSpeed
+                if(this.cloudArr[i].xPosition < - this.status.imageOffset.cloud.sw) {
+                  removeCloudIdxArr.push(i)
+                }
+              }
+              for(let i = removeCloudIdxArr.length - 1; i >= 0; i--){
+                if (removeCloudIdxArr[i] > -1) this.cloudArr.splice(removeCloudIdxArr[i], 1)
+              }
+              
+              if(this.status.cloudCycle === 0) {
+                this.cloudArr.push({xPosition: 600, yPosition: getRandomInt(10, 70), xSpeed: getRandomInt(1, 4)})
+                this.status.cloudCycle = getRandomInt(400, 800)
+              }
+            }
+          }
+
         },
         agent: {
           status: {
@@ -281,6 +374,16 @@
               dw: 55,
               dh: 26,
             },
+            dead: {
+              sx: 1024,
+              sy: 2,
+              sw: 44,
+              sh: 47,
+              dx: 0,
+              dy: 102,
+              dw: 44,
+              dh: 47,
+            },
           },
           hitBoxOffset: {
             normal: {
@@ -296,28 +399,62 @@
               h: 19,
             }
           },
+          init: function(game){
+            this.status.xPositoin = 0
+            this.status.yPosition = 102 - game.status.yDist
+            this.status.slide = game.status.slide
+          },
           draw: function(game, context, image, fr) {
             const status = game.status
-            if(!status.onGround) {
-              context.drawImage(image, this.imageOffset.jump.sx, this.imageOffset.jump.sy, this.imageOffset.jump.sw, this.imageOffset.jump.sh, this.imageOffset.jump.dx, this.imageOffset.jump.dy - status.yDist, this.imageOffset.jump.dw, this.imageOffset.jump.dh)
-            }else if(status.slide) {
-              if(Math.floor(fr/4)%2 == 0) {
-                context.drawImage(image, this.imageOffset.slideLeft.sx, this.imageOffset.slideLeft.sy, this.imageOffset.slideLeft.sw, this.imageOffset.slideLeft.sh, this.imageOffset.slideLeft.dx, this.imageOffset.slideLeft.dy, this.imageOffset.slideLeft.dw, this.imageOffset.slideLeft.dh)
+            if (status.gameOver) {
+              context.drawImage(image, this.imageOffset.dead.sx, this.imageOffset.dead.sy, this.imageOffset.dead.sw, this.imageOffset.dead.sh, this.imageOffset.dead.dx, this.imageOffset.dead.dy - status.yDist, this.imageOffset.dead.dw, this.imageOffset.dead.dh)
+            }else if (!status.onGround) {
+              if (status.immortal) {
+                if(Math.floor(fr/4)%4 == 0) {
+                }else{
+                  context.drawImage(image, this.imageOffset.jump.sx, this.imageOffset.jump.sy, this.imageOffset.jump.sw, this.imageOffset.jump.sh, this.imageOffset.jump.dx, this.imageOffset.jump.dy - status.yDist, this.imageOffset.jump.dw, this.imageOffset.jump.dh)
+                }
+              }else {
+                context.drawImage(image, this.imageOffset.jump.sx, this.imageOffset.jump.sy, this.imageOffset.jump.sw, this.imageOffset.jump.sh, this.imageOffset.jump.dx, this.imageOffset.jump.dy - status.yDist, this.imageOffset.jump.dw, this.imageOffset.jump.dh)
+              }
+            }else if (status.slide) {
+              if (status.immortal) {
+                if(Math.floor(fr/4)%4 == 0) {
+                } else if(Math.floor(fr/4)%2 == 0) {
+                  context.drawImage(image, this.imageOffset.slideLeft.sx, this.imageOffset.slideLeft.sy, this.imageOffset.slideLeft.sw, this.imageOffset.slideLeft.sh, this.imageOffset.slideLeft.dx, this.imageOffset.slideLeft.dy, this.imageOffset.slideLeft.dw, this.imageOffset.slideLeft.dh)
+                } else {
+                  context.drawImage(image, this.imageOffset.slideRight.sx, this.imageOffset.slideRight.sy, this.imageOffset.slideRight.sw, this.imageOffset.slideRight.sh, this.imageOffset.slideRight.dx, this.imageOffset.slideRight.dy, this.imageOffset.slideRight.dw, this.imageOffset.slideRight.dh)
+                }
               } else {
-                context.drawImage(image, this.imageOffset.slideRight.sx, this.imageOffset.slideRight.sy, this.imageOffset.slideRight.sw, this.imageOffset.slideRight.sh, this.imageOffset.slideRight.dx, this.imageOffset.slideRight.dy, this.imageOffset.slideRight.dw, this.imageOffset.slideRight.dh)
+                if(Math.floor(fr/4)%2 == 0) {
+                  context.drawImage(image, this.imageOffset.slideLeft.sx, this.imageOffset.slideLeft.sy, this.imageOffset.slideLeft.sw, this.imageOffset.slideLeft.sh, this.imageOffset.slideLeft.dx, this.imageOffset.slideLeft.dy, this.imageOffset.slideLeft.dw, this.imageOffset.slideLeft.dh)
+                } else {
+                  context.drawImage(image, this.imageOffset.slideRight.sx, this.imageOffset.slideRight.sy, this.imageOffset.slideRight.sw, this.imageOffset.slideRight.sh, this.imageOffset.slideRight.dx, this.imageOffset.slideRight.dy, this.imageOffset.slideRight.dw, this.imageOffset.slideRight.dh)
+                }
               }
             }else {
-              if(Math.floor(fr/4)%2 == 0) {
-                context.drawImage(image, this.imageOffset.left.sx, this.imageOffset.left.sy, this.imageOffset.left.sw, this.imageOffset.left.sh, this.imageOffset.left.dx, this.imageOffset.left.dy, this.imageOffset.left.dw, this.imageOffset.left.dh)
+              if (status.immortal) {
+                if(Math.floor(fr/4)%4 == 0) {
+                } else if(Math.floor(fr/4)%2 == 0) {
+                  context.drawImage(image, this.imageOffset.left.sx, this.imageOffset.left.sy, this.imageOffset.left.sw, this.imageOffset.left.sh, this.imageOffset.left.dx, this.imageOffset.left.dy, this.imageOffset.left.dw, this.imageOffset.left.dh)
+                } else {
+                  context.drawImage(image, this.imageOffset.right.sx, this.imageOffset.right.sy, this.imageOffset.right.sw, this.imageOffset.right.sh, this.imageOffset.right.dx, this.imageOffset.right.dy, this.imageOffset.right.dw, this.imageOffset.right.dh)
+                }
               } else {
-                context.drawImage(image, this.imageOffset.right.sx, this.imageOffset.right.sy, this.imageOffset.right.sw, this.imageOffset.right.sh, this.imageOffset.right.dx, this.imageOffset.right.dy, this.imageOffset.right.dw, this.imageOffset.right.dh)
+                if(Math.floor(fr/4)%2 == 0) {
+                  context.drawImage(image, this.imageOffset.left.sx, this.imageOffset.left.sy, this.imageOffset.left.sw, this.imageOffset.left.sh, this.imageOffset.left.dx, this.imageOffset.left.dy, this.imageOffset.left.dw, this.imageOffset.left.dh)
+                } else {
+                  context.drawImage(image, this.imageOffset.right.sx, this.imageOffset.right.sy, this.imageOffset.right.sw, this.imageOffset.right.sh, this.imageOffset.right.dx, this.imageOffset.right.dy, this.imageOffset.right.dw, this.imageOffset.right.dh)
+                }
               }
+              
             }
-            if (status.showHitBox) {
+            if (game.flag.showHitBox) {
               context.strokeRect(this.status.hitBox.x, this.status.hitBox.y, this.status.hitBox.w, this.status.hitBox.h)
             }
           },
           update: function(game) {
+            if(game.status.gameOver) return 0
             this.status.xPosition = 0
             this.status.yPosition = 102 - game.status.yDist
             this.status.slide = game.status.slide
@@ -336,6 +473,9 @@
         },
         huddle: {
           huddleArr: [],
+          init: function(game){
+            this.huddleArr = []
+          },
           addHuddle: function(type) {
             let obj = null
             switch (type) {
@@ -504,6 +644,7 @@
             this.huddleArr.push(obj)
           },
           update: function(game) {
+            if(game.status.gameOver) return 0
             const xSpeed = game.status.xSpeed
             const huddleArr = this.huddleArr
             const removeHuddleIdx = [] // remove huddles
@@ -539,7 +680,7 @@
               const obj = e
               switch (obj.type) {
                 case 1: // Pterosaur
-                  if(Math.floor(fr/10)%2 == 0) {
+                  if(!status.gameOver && Math.floor(fr/10)%2 == 0) {
                     context.drawImage(image, obj.imageOffset.first.sx, obj.imageOffset.first.sy, obj.imageOffset.first.sw, obj.imageOffset.first.sh, obj.status.xPosition, obj.status.yPosition, obj.imageOffset.first.sw, obj.imageOffset.first.sh)
                   } else {
                     context.drawImage(image, obj.imageOffset.second.sx, obj.imageOffset.second.sy, obj.imageOffset.second.sw, obj.imageOffset.second.sh, obj.status.xPosition, obj.status.yPosition - 6, obj.imageOffset.second.sw, obj.imageOffset.second.sh)
@@ -554,16 +695,221 @@
                 default:
                   break;
               }
-              if (status.showHitBox) {
+              if (game.flag.showHitBox) {
                 context.strokeRect(e.status.hitBox.x, e.status.hitBox.y, e.status.hitBox.w, e.status.hitBox.h)
               }
             })
           }
-        }
+        },
+        score: {
+          status: {
+            score: 0,
+            highscore: 0,
+            scoreLength: 5,
+            imageOffset: {
+              num0: {
+                x: 655,
+                y: 2,
+                w:9,
+                h:11
+              },
+              num1: {
+                x: 666,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num2: {
+                x: 675,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num3: {
+                x: 685,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num4: {
+                x: 695,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num5: {
+                x: 705,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num6: {
+                x: 715,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num7: {
+                x: 725,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num8: {
+                x: 735,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              num9: {
+                x: 745,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              charH: {
+                x: 755,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+              charI: {
+                x: 765,
+                y: 2,
+                w: 9,
+                h: 11
+              },
+            }
+          },
+          init: function(game){
+            this.score = this.status.score
+          },
+          update: function(game) {
+            if(game.status.gameOver) return 0
+            this.status.score = Math.floor(game.status.xDist) / 10
+            if(this.status.highscore < this.status.score) {
+              this.status.highscore = this.status.score
+            }
+          },
+          draw: function(game, context, image, fr) {
+            const score = this.status.score
+            const str = score.toString()
+            const length = this.status.scoreLength
+            let tmp = score
+            let numStr = ''
+            let idx
+            let num
+            const imageOffsetKeys = Object.keys(this.status.imageOffset)
+            for (let i = 0; i < length; i++) {
+              numStr = 'num' + (parseInt(tmp) % 10)
+              idx = imageOffsetKeys.indexOf(numStr)
+              num = Object.values(this.status.imageOffset)[idx]
+              context.drawImage(image, num.x, num.y, num.w, num.h, 600 - 10 * (i + 1), 0 , num.w, num.h)
+              tmp /= 10
+              tmp = Math.floor(tmp)
+            }
+            tmp = this.status.highscore
+            for (let i = 0; i < length; i++) {
+              numStr = 'num' + (parseInt(tmp) % 10)
+              idx = imageOffsetKeys.indexOf(numStr)
+              num = Object.values(this.status.imageOffset)[idx]
+              context.drawImage(image, num.x, num.y, num.w, num.h, 600 - 10 * (length + 2) - 10 * i, 0, num.w, num.h)
+              tmp /= 10
+              tmp = Math.floor(tmp)
+            }
+            context.drawImage(image, this.status.imageOffset.charH.x, this.status.imageOffset.charH.y, this.status.imageOffset.charH.w, this.status.imageOffset.charH.h, 600 - 10 * (length * 2 + 4), 0, this.status.imageOffset.charH.w, this.status.imageOffset.charH.h)
+            context.drawImage(image, this.status.imageOffset.charI.x, this.status.imageOffset.charI.y, this.status.imageOffset.charI.w, this.status.imageOffset.charI.h, 600 - 10 * (length * 2 + 3), 0, this.status.imageOffset.charI.w, this.status.imageOffset.charI.h)
+
+          },
+        },
+        gameOver: {
+          status: {
+            visible: false,
+            imageOffset: {
+              gameOver: {
+                sx: 655,
+                sy: 15,
+                sw: 191,
+                sh: 11,
+                dx: 204,
+                dy: 30,
+                dw: 191,
+                dh: 11,
+              },
+              restart: {
+                sx: 3,
+                sy: 3,
+                sw: 34,
+                sh: 30,
+                dx: 283,
+                dy: 60,
+                dw: 34,
+                dh: 30,
+              },
+            }
+          },
+          init: function(game){
+            this.status.visible = game.status.gameOver
+          },
+          draw: function(game, context, image, fr) {
+            if(this.status.visible === true) {
+              const gameOver = this.status.imageOffset.gameOver
+              const restart = this.status.imageOffset.restart
+              context.drawImage(image, gameOver.sx, gameOver.sy, gameOver.sw, gameOver.sh, gameOver.dx, gameOver.dy, gameOver.dw, gameOver.dh)
+              context.drawImage(image, restart.sx, restart.sy, restart.sw, restart.sh, restart.dx, restart.dy, restart.dw, restart.dh)
+            }
+
+          },
+          update: function(game) {
+            this.status.visible = game.status.gameOver
+          }
+        },
+        life: {
+          status: {
+            life: 3,
+            imageOffset: {
+              fullHeart: {
+                sx: 657,
+                sy: 33,
+                sw: 7,
+                sh: 6,
+              },
+              emptyHeart: {
+                sx: 666,
+                sy: 33,
+                sw: 7,
+                sh: 6,
+              },
+            }
+          },
+          init: function(game){
+            this.status.life = game.status.life
+          },
+          draw: function(game, context, image, fr) {
+            const fullHeart = this.status.imageOffset.fullHeart
+            const emptyHeart = this.status.imageOffset.emptyHeart
+            for (let i = 0; i < game.status.lifeMaximum; i++) {
+              if (i < this.status.life) {
+                context.drawImage(image, fullHeart.sx, fullHeart.sy, fullHeart.sw, fullHeart.sh, 600 - (10 * (i + 1)), 20, fullHeart.sw, fullHeart.sh)
+              } else {
+                context.drawImage(image, emptyHeart.sx, emptyHeart.sy, emptyHeart.sw, emptyHeart.sh, 600 - (10 * (i + 1)), 20, emptyHeart.sw, emptyHeart.sh)
+              }
+            }
+          },
+          update: function(game) {
+            this.status.life = game.status.life
+          }
+        },
       },
+      // Methods
       addHuddle(type) {
         this.objects.huddle.addHuddle(type)
       },
+      pad(n, width, z) {
+        z = z || '0';
+        n = n + '';
+        return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+      }
     }
     window.onload = function() {
       T_Rex_Game.onLoad()
