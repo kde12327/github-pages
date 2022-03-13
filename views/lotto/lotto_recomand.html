@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko-kr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Main</title>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 20px;
+    }
+    #result{
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>
+	로또 번호 추첨기
+  </h1>
+  <h4>원하는 번호 개수</h4>
+  <input id="number" type="number">
+  <input id="submit" type="submit">
+  <div id="result"></div>
+  <script>
+    function getRandomNumber() {
+      min = Math.ceil(1);
+      max = Math.floor(46);
+      return Math.floor(Math.random() * (max - min)) + min; //최댓값은 제외, 최솟값은 포함
+    }
+
+
+    var submit_dom = document.getElementById("submit");
+    var number_dom = document.getElementById("number");
+    var result_dom = document.getElementById("result");
+    submit_dom.onclick = function() {
+      var number = parseInt(number_dom.value);
+      if(!parseInt(number)){
+        alert("원하는 로또 번호 개수를 입력하세요.")
+        return;
+      }
+      var lottonumbers_list = [];
+      for(var i = 0; i < number; i++){
+        var lottonumber_list = [];
+        for(var j = 0; j < 6; j++){
+          var random_number = getRandomNumber();
+          if(lottonumber_list.find(element => element == random_number)){
+            j--;
+          }else{
+            lottonumber_list.push(random_number);
+          }
+        }
+        lottonumber_list.sort(function(a, b) {
+          return a - b;
+        });
+        if(lottonumbers_list.find(element => element == lottonumber_list)){
+          i--;
+        }else{
+          lottonumbers_list.push(lottonumber_list);
+        }
+      } 
+      var result_string = "";
+
+      for(var i = 0; i < lottonumbers_list.length; i++){
+        result_string+=(i+1) + "번째: ";
+        for(var j = 0; j < lottonumbers_list[i].length; j++){
+          result_string+= lottonumbers_list[i][j] + " ";
+        }
+        result_string+="<br>";
+      }
+
+      result_dom.innerHTML  = result_string;
+      
+    }
+  </script>
+</body>
+</html>
