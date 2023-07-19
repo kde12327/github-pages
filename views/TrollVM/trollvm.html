@@ -8,7 +8,9 @@
     html, body {
       height: 100%;
       width: 100%;
-      margin: 20px;
+      margin: 0;
+      overflow: hidden;
+      padding: 20px;
     }
     #result{
       margin-top: 20px;
@@ -20,6 +22,11 @@
 	트롤 자판기
   </h1>
   <h4>리그 오브 레전드 랜덤 조합기</h4>
+  <input type="checkbox" id="checkbox_champion" name="체크" value="champion" checked="checked">챔피언<br>
+  <input type="checkbox" id="checkbox_line" name="체크" value="line" checked="checked">라인<br>
+  <input type="checkbox" id="checkbox_item" name="체크" value="item" checked="checked">아이템<br>
+  <input type="checkbox" id="checkbox_rune" name="체크" value="rune" checked="checked">룬<br>
+  <br>
   <button id="allrandom" type="button">전체 랜덤</button>
   <div id="result"></div>
   <script>
@@ -263,6 +270,11 @@
     var allrandom_dom = document.getElementById("allrandom");
     var result_dom = document.getElementById("result");
 
+    var checkbox_champion = document.getElementById("checkbox_champion");
+    var checkbox_line = document.getElementById("checkbox_line");
+    var checkbox_item = document.getElementById("checkbox_item");
+    var checkbox_rune = document.getElementById("checkbox_rune");
+
 
     allrandom_dom.onclick = function() {
       champion = champions[getRandomNumber(champions.length)];
@@ -272,10 +284,14 @@
 
       var result_string = "<table>";
 
-      result_string += "<tr><td>챔피언</td><td>:  " + champion + "</td></tr>";
-      result_string += "<tr><td>라인</td><td>:  " + line + "</td></tr>";
-      result_string += "<tr><td>아이템</td><td>:  " + item + "</td></tr>";
-      result_string += "<tr><td>룬</td><td>:  " + rune + "</td></tr>";
+      if(checkbox_champion.checked)
+        result_string += "<tr><td>챔피언</td><td>:  " + champion + "</td></tr>";
+      if(checkbox_line.checked)
+        result_string += "<tr><td>라인</td><td>:  " + line + "</td></tr>";
+      if(checkbox_item.checked)
+        result_string += "<tr><td>아이템</td><td>:  " + item + "</td></tr>";
+      if(checkbox_rune.checked)
+        result_string += "<tr><td>룬</td><td>:  " + rune + "</td></tr>";
 
       result_string += "</table>";
 
